@@ -22,10 +22,7 @@ class _JadeOverlayScreenState extends State<JadeOverlayScreen>
       duration: const Duration(seconds: 4),
     )..repeat(reverse: true);
     _animation = Tween<double>(begin: 1.0, end: 1.15).animate(
-      CurvedAnimation(
-        parent: _controller,
-        curve: Curves.easeInOutSine,
-      ),
+      CurvedAnimation(parent: _controller, curve: Curves.easeInOutSine),
     );
   }
 
@@ -49,7 +46,7 @@ class _JadeOverlayScreenState extends State<JadeOverlayScreen>
                 end: Alignment.bottomRight,
                 colors: [
                   JadeColors.primary,
-                  JadeColors.primary.withOpacity(0.8),
+                  JadeColors.primary.withValues(alpha: 0.8),
                 ],
               ),
             ),
@@ -64,11 +61,11 @@ class _JadeOverlayScreenState extends State<JadeOverlayScreen>
                     width: 200,
                     height: 200,
                     decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.1),
+                      color: Colors.white.withValues(alpha: 0.1),
                       shape: BoxShape.circle,
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.white.withOpacity(0.05),
+                          color: Colors.white.withValues(alpha: 0.05),
                           blurRadius: 40,
                           spreadRadius: 20,
                         ),
@@ -79,7 +76,7 @@ class _JadeOverlayScreenState extends State<JadeOverlayScreen>
                         width: 140,
                         height: 140,
                         decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.2),
+                          color: Colors.white.withValues(alpha: 0.2),
                           shape: BoxShape.circle,
                         ),
                         child: const Icon(
@@ -95,9 +92,9 @@ class _JadeOverlayScreenState extends State<JadeOverlayScreen>
                 Text(
                   'Momento de pausa',
                   style: Theme.of(context).textTheme.displayLarge?.copyWith(
-                        color: Colors.white,
-                        fontSize: 32,
-                      ),
+                    color: Colors.white,
+                    fontSize: 32,
+                  ),
                 ),
                 const SizedBox(height: 16),
                 Padding(
@@ -106,9 +103,9 @@ class _JadeOverlayScreenState extends State<JadeOverlayScreen>
                     'Instagram está bloqueado para proteger tu paz mental. Respira profundamente.',
                     textAlign: TextAlign.center,
                     style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                          color: Colors.white.withOpacity(0.8),
-                          height: 1.5,
-                        ),
+                      color: Colors.white.withValues(alpha: 0.8),
+                      height: 1.5,
+                    ),
                   ),
                 ),
                 const SizedBox(height: 80),

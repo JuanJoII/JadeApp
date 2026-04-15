@@ -31,30 +31,33 @@ class MonitoringScreen extends ConsumerWidget {
             Text(
               'Selecciona las apps que deseas monitorear y limitar su uso.',
               style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                    color: colorScheme.onSurface.withOpacity(0.7),
-                  ),
+                color: colorScheme.onSurface.withValues(alpha: 0.7),
+              ),
             ),
             const SizedBox(height: 32),
             Expanded(
               child: ListView.separated(
                 itemCount: apps.length,
-                separatorBuilder: (context, index) => const SizedBox(height: 12),
+                separatorBuilder: (context, index) =>
+                    const SizedBox(height: 12),
                 itemBuilder: (context, index) {
                   final app = apps[index];
                   return Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
                       color: app.isBlocked
-                          ? JadeColors.primaryContainer.withOpacity(0.3)
+                          ? JadeColors.primaryContainer.withValues(alpha: 0.3)
                           : (Theme.of(context).brightness == Brightness.light
-                              ? JadeColors.surfaceContainerLow
-                              : JadeColors.darkSurfaceContainer),
+                                ? JadeColors.surfaceContainerLow
+                                : JadeColors.darkSurfaceContainer),
                       borderRadius: BorderRadius.circular(24),
                     ),
                     child: Row(
                       children: [
                         CircleAvatar(
-                          backgroundColor: JadeColors.primary.withOpacity(0.1),
+                          backgroundColor: JadeColors.primary.withValues(
+                            alpha: 0.1,
+                          ),
                           child: Icon(
                             _getIconForApp(app.name),
                             color: JadeColors.primary,
@@ -64,17 +67,18 @@ class MonitoringScreen extends ConsumerWidget {
                         Expanded(
                           child: Text(
                             app.name,
-                            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                  fontWeight: FontWeight.w500,
-                                ),
+                            style: Theme.of(context).textTheme.titleMedium
+                                ?.copyWith(fontWeight: FontWeight.w500),
                           ),
                         ),
                         Switch(
                           value: app.isBlocked,
                           onChanged: (_) {
-                            ref.read(appListProvider.notifier).toggleBlocked(app.id);
+                            ref
+                                .read(appListProvider.notifier)
+                                .toggleBlocked(app.id);
                           },
-                          activeColor: JadeColors.primary,
+                          activeThumbColor: JadeColors.primary,
                         ),
                       ],
                     ),

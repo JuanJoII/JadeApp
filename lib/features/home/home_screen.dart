@@ -22,7 +22,7 @@ class HomeScreen extends StatelessWidget {
               Text(
                 'Tu santuario digital está listo.',
                 style: textTheme.bodyLarge?.copyWith(
-                  color: colorScheme.onSurface.withOpacity(0.6),
+                  color: colorScheme.onSurface.withValues(alpha: 0.6),
                 ),
               ),
               const SizedBox(height: 40),
@@ -64,7 +64,9 @@ class HomeScreen extends StatelessWidget {
                     const SizedBox(height: 8),
                     LinearProgressIndicator(
                       value: 0.7,
-                      backgroundColor: colorScheme.onPrimary.withOpacity(0.2),
+                      backgroundColor: colorScheme.onPrimary.withValues(
+                        alpha: 0.2,
+                      ),
                       color: JadeColors.primary,
                       minHeight: 8,
                       borderRadius: const BorderRadius.all(Radius.circular(4)),
@@ -150,7 +152,7 @@ class HomeScreen extends StatelessWidget {
           Text(
             label,
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              color: colorScheme.onSurface.withOpacity(0.6),
+              color: colorScheme.onSurface.withValues(alpha: 0.6),
             ),
           ),
         ],
@@ -181,7 +183,7 @@ class HomeScreen extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: JadeColors.primary.withOpacity(0.05),
+                color: JadeColors.primary.withValues(alpha: 0.05),
                 shape: BoxShape.circle,
               ),
               child: Icon(icon, color: JadeColors.primary),
@@ -200,7 +202,7 @@ class HomeScreen extends StatelessWidget {
                   Text(
                     subtitle,
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: colorScheme.onSurface.withOpacity(0.6),
+                      color: colorScheme.onSurface.withValues(alpha: 0.6),
                     ),
                   ),
                 ],

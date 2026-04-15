@@ -32,10 +32,11 @@ class SettingsScreen extends ConsumerWidget {
             trailing: Switch(
               value: themeMode == ThemeMode.dark,
               onChanged: (value) {
-                ref.read(themeModeProvider.notifier).state =
-                    value ? ThemeMode.dark : ThemeMode.light;
+                ref.read(themeModeProvider.notifier).state = value
+                    ? ThemeMode.dark
+                    : ThemeMode.light;
               },
-              activeColor: JadeColors.primary,
+              activeThumbColor: JadeColors.primary,
             ),
           ),
           const SizedBox(height: 32),
@@ -82,10 +83,10 @@ class SettingsScreen extends ConsumerWidget {
     return Text(
       title,
       style: Theme.of(context).textTheme.titleSmall?.copyWith(
-            color: JadeColors.primary,
-            fontWeight: FontWeight.bold,
-            letterSpacing: 0.5,
-          ),
+        color: JadeColors.primary,
+        fontWeight: FontWeight.bold,
+        letterSpacing: 0.5,
+      ),
     );
   }
 
@@ -108,19 +109,18 @@ class SettingsScreen extends ConsumerWidget {
         leading: Container(
           padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
-            color: JadeColors.primary.withOpacity(0.05),
+            color: JadeColors.primary.withValues(alpha: 0.05),
             shape: BoxShape.circle,
           ),
           child: Icon(icon, color: JadeColors.primary),
         ),
-        title: Text(
-          title,
-          style: const TextStyle(fontWeight: FontWeight.w500),
-        ),
+        title: Text(title, style: const TextStyle(fontWeight: FontWeight.w500)),
         subtitle: Text(
           subtitle,
           style: TextStyle(
-            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+            color: Theme.of(
+              context,
+            ).colorScheme.onSurface.withValues(alpha: 0.6),
             fontSize: 12,
           ),
         ),

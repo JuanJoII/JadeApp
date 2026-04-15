@@ -17,17 +17,20 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   final List<OnboardingData> _pages = [
     OnboardingData(
       title: 'Bienvenido a JADE',
-      description: 'Crea tu propio santuario digital. Un espacio de calma en un mundo lleno de distracciones.',
+      description:
+          'Crea tu propio santuario digital. Un espacio de calma en un mundo lleno de distracciones.',
       icon: Icons.spa_outlined,
     ),
     OnboardingData(
       title: 'Protege tu enfoque',
-      description: 'Selecciona las apps que consumen tu tiempo y JADE te ayudará a limitar su uso.',
+      description:
+          'Selecciona las apps que consumen tu tiempo y JADE te ayudará a limitar su uso.',
       icon: Icons.shield_moon_outlined,
     ),
     OnboardingData(
       title: 'Bienestar que premia',
-      description: 'Gana puntos y sube de nivel mientras mantienes tus hábitos digitales saludables.',
+      description:
+          'Gana puntos y sube de nivel mientras mantienes tus hábitos digitales saludables.',
       icon: Icons.auto_awesome_outlined,
     ),
   ];
@@ -44,7 +47,10 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               alignment: Alignment.topRight,
               child: TextButton(
                 onPressed: () => context.go('/home'),
-                child: const Text('Omitir', style: TextStyle(color: JadeColors.primary)),
+                child: const Text(
+                  'Omitir',
+                  style: TextStyle(color: JadeColors.primary),
+                ),
               ),
             ),
             Expanded(
@@ -61,7 +67,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                         Container(
                           padding: const EdgeInsets.all(40),
                           decoration: BoxDecoration(
-                            color: JadeColors.primary.withOpacity(0.05),
+                            color: JadeColors.primary.withValues(alpha: 0.05),
                             shape: BoxShape.circle,
                           ),
                           child: Icon(
@@ -74,14 +80,19 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                         Text(
                           _pages[index].title,
                           textAlign: TextAlign.center,
-                          style: Theme.of(context).textTheme.displayLarge?.copyWith(fontSize: 28),
+                          style: Theme.of(
+                            context,
+                          ).textTheme.displayLarge?.copyWith(fontSize: 28),
                         ),
                         const SizedBox(height: 16),
                         Text(
                           _pages[index].description,
                           textAlign: TextAlign.center,
-                          style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                                color: colorScheme.onSurface.withOpacity(0.6),
+                          style: Theme.of(context).textTheme.bodyLarge
+                              ?.copyWith(
+                                color: colorScheme.onSurface.withValues(
+                                  alpha: 0.6,
+                                ),
                                 height: 1.5,
                               ),
                         ),
@@ -104,7 +115,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                         width: _currentPage == index ? 24 : 8,
                         height: 8,
                         decoration: BoxDecoration(
-                          color: _currentPage == index ? JadeColors.primary : JadeColors.primary.withOpacity(0.2),
+                          color: _currentPage == index
+                              ? JadeColors.primary
+                              : JadeColors.primary.withValues(alpha: 0.2),
                           borderRadius: BorderRadius.circular(4),
                         ),
                       ),
@@ -112,7 +125,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   ),
                   const SizedBox(height: 32),
                   JadeButton(
-                    text: _currentPage == _pages.length - 1 ? 'Comenzar' : 'Siguiente',
+                    text: _currentPage == _pages.length - 1
+                        ? 'Comenzar'
+                        : 'Siguiente',
                     onPressed: () {
                       if (_currentPage == _pages.length - 1) {
                         context.go('/home');
