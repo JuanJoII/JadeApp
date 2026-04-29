@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:permission_handler/permission_handler.dart';
 import '../../core/theme.dart';
 import '../../widgets/jade_button.dart';
 
@@ -33,7 +34,30 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           'Gana puntos y sube de nivel mientras mantienes tus hábitos digitales saludables.',
       icon: Icons.auto_awesome_outlined,
     ),
+    OnboardingData(
+      title: 'Permisos necesarios',
+      description:
+          'JADE necesita acceso para ver qué apps usas y poder ayudarte a limitar el tiempo en ellas.',
+      icon: Icons.key_outlined,
+      isPermissionPage: true,
+    ),
   ];
+
+  Future<void> _requestPermissions() async {
+    // Nota: El acceso a estadísticas de uso en Android usualmente requiere 
+    // abrir la pantalla de ajustes de sistema específica.
+    // Aquí usamos un permiso de ejemplo para demostrar la lógica.
+    final status = await Permission.sensors.request(); 
+    
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Estado del permiso: ${status.name}'),
+          duration: const Duration(seconds: 2),
+        ),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -45,13 +69,15 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           children: [
             Align(
               alignment: Alignment.topRight,
-              child: TextButton(
-                onPressed: () => context.go('/home'),
-                child: const Text(
-                  'Omitir',
-                  style: TextStyle(color: JadeColors.primary),
-                ),
-              ),
+              child: _currentPage != _pages.length - 1 
+                ? TextButton(
+                    onPressed: () => context.go('/home'),
+                    child: const Text(
+                      'Omitir',
+                      style: TextStyle(color: JadeColors.primary),
+                    ),
+                  )
+                : const SizedBox(height: 48),
             ),
             Expanded(
               child: PageView.builder(
@@ -59,6 +85,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 onPageChanged: (index) => setState(() => _currentPage = index),
                 itemCount: _pages.length,
                 itemBuilder: (context, index) {
+                  final data = _pages[index];
                   return Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 32.0),
                     child: Column(
@@ -71,14 +98,14 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                             shape: BoxShape.circle,
                           ),
                           child: Icon(
-                            _pages[index].icon,
+                            data.icon,
                             size: 100,
                             color: JadeColors.primary,
                           ),
                         ),
                         const SizedBox(height: 48),
                         Text(
-                          _pages[index].title,
+                          data.title,
                           textAlign: TextAlign.center,
                           style: Theme.of(
                             context,
@@ -86,7 +113,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                         ),
                         const SizedBox(height: 16),
                         Text(
-                          _pages[index].description,
+                          data.description,
                           textAlign: TextAlign.center,
                           style: Theme.of(context).textTheme.bodyLarge
                               ?.copyWith(
@@ -96,6 +123,23 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                                 height: 1.5,
                               ),
                         ),
+                        if (data.isPermissionPage) ...[
+                          const SizedBox(height: 32),
+                          ElevatedButton.icon(
+                            onPressed: _requestPermissions,
+                            icon: const Icon(Icons.settings),
+                            label: const Text('Conceder Permisos'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: JadeColors.primary.withValues(alpha: 0.1),
+                              foregroundColor: JadeColors.primary,
+                              elevation: 0,
+                              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                            ),
+                          ),
+                        ],
                       ],
                     ),
                   );
@@ -153,10 +197,12 @@ class OnboardingData {
   final String title;
   final String description;
   final IconData icon;
+  final bool isPermissionPage;
 
   OnboardingData({
     required this.title,
     required this.description,
     required this.icon,
+    this.isPermissionPage = false,
   });
 }
