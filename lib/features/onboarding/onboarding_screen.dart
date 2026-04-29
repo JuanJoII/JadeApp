@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:usage_stats/usage_stats.dart';
+import 'package:flutter_background_service/flutter_background_service.dart';
 import 'package:permission_handler/permission_handler.dart';
 import '../../core/theme.dart';
 import '../../widgets/jade_button.dart';
@@ -37,25 +39,44 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     OnboardingData(
       title: 'Permisos necesarios',
       description:
-          'JADE necesita acceso para ver qué apps usas y poder ayudarte a limitar el tiempo en ellas.',
+          'JADE necesita acceso para ver qué apps usas y enviarte notificaciones de bienestar.',
       icon: Icons.key_outlined,
       isPermissionPage: true,
     ),
   ];
 
   Future<void> _requestPermissions() async {
-    // Nota: El acceso a estadísticas de uso en Android usualmente requiere 
-    // abrir la pantalla de ajustes de sistema específica.
-    // Aquí usamos un permiso de ejemplo para demostrar la lógica.
-    final status = await Permission.sensors.request(); 
-    
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Estado del permiso: ${status.name}'),
-          duration: const Duration(seconds: 2),
-        ),
-      );
+    // Pedir permiso de notificaciones (Android 13+)
+    await Permission.notification.request();
+
+    // Pedir permiso de estadísticas de uso
+    bool? isGranted = await UsageStats.checkUsagePermission();
+    if (isGranted == null || !isGranted) {
+      await UsageStats.grantUsagePermission();
+    } else {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Permisos básicos ya concedidos.')),
+        );
+      }
+    }
+  }
+
+  Future<void> _finishOnboarding() async {
+    bool? isGranted = await UsageStats.checkUsagePermission();
+    if (isGranted == true) {
+      // Iniciar el servicio de monitoreo
+      final service = FlutterBackgroundService();
+      await service.startService();
+      if (mounted) context.go('/home');
+    } else {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Por favor, concede el permiso para activar el monitoreo.'),
+          ),
+        );
+      }
     }
   }
 
@@ -174,7 +195,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                         : 'Siguiente',
                     onPressed: () {
                       if (_currentPage == _pages.length - 1) {
-                        context.go('/home');
+                        _finishOnboarding();
                       } else {
                         _pageController.nextPage(
                           duration: const Duration(milliseconds: 300),

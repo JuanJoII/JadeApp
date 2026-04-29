@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:installed_apps/installed_apps.dart';
 import 'package:installed_apps/app_info.dart' as ia;
+import 'package:shared_preferences/shared_preferences.dart';
 import '../models/app_info.dart';
 
 final appSearchQueryProvider = StateProvider<String>((ref) => '');
@@ -9,8 +10,6 @@ final showSystemAppsProvider = StateProvider<bool>((ref) => false);
 final filteredAppListProvider = Provider<List<AppInfo>>((ref) {
   final allApps = ref.watch(appListProvider);
   final searchQuery = ref.watch(appSearchQueryProvider).toLowerCase();
-
-  if (searchQuery.isEmpty) return allApps;
 
   return allApps.where((app) {
     return app.name.toLowerCase().contains(searchQuery) ||
@@ -23,10 +22,20 @@ final appListProvider = StateNotifierProvider<AppListNotifier, List<AppInfo>>((r
 });
 
 class AppListNotifier extends StateNotifier<List<AppInfo>> {
-  AppListNotifier() : super([]);
+  AppListNotifier() : super([]) {
+    _loadInitialApps();
+  }
+
+  Future<void> _loadInitialApps() async {
+    // Primero sincronizamos apps básicas y luego aplicamos el estado de bloqueo guardado
+    await syncApps();
+  }
 
   Future<void> syncApps({bool includeSystemApps = false}) async {
     try {
+      final prefs = await SharedPreferences.getInstance();
+      final blockedPackageNames = prefs.getStringList('blocked_apps') ?? [];
+
       List<ia.AppInfo> installedApps = await InstalledApps.getInstalledApps(
         withIcon: true,
         excludeSystemApps: !includeSystemApps,
@@ -38,18 +47,17 @@ class AppListNotifier extends StateNotifier<List<AppInfo>> {
           name: app.name,
           packageName: app.packageName,
           iconBytes: app.icon,
-          isBlocked: false,
+          isBlocked: blockedPackageNames.contains(app.packageName),
         );
       }).toList();
       
-      // Ordenar alfabéticamente
       state.sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
     } catch (e) {
       print('Error fetching apps: $e');
     }
   }
 
-  void toggleBlocked(String id) {
+  Future<void> toggleBlocked(String id) async {
     state = [
       for (final app in state)
         if (app.id == id)
@@ -57,5 +65,13 @@ class AppListNotifier extends StateNotifier<List<AppInfo>> {
         else
           app,
     ];
+
+    // Guardar lista actualizada en SharedPreferences para que el servicio la lea
+    final prefs = await SharedPreferences.getInstance();
+    final blockedList = state
+        .where((app) => app.isBlocked)
+        .map((app) => app.packageName)
+        .toList();
+    await prefs.setStringList('blocked_apps', blockedList);
   }
 }

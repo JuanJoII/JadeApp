@@ -1,11 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'core/theme.dart';
+import 'core/monitoring_service.dart';
 import 'routes.dart';
 
-void main() {
+void main() async {
   // Asegurar que los widgets estén inicializados
   WidgetsFlutterBinding.ensureInitialized();
+  
+  // Inicializar servicio de monitoreo
+  await MonitoringService.initialize();
   
   runApp(
     const ProviderScope(

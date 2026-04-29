@@ -40,6 +40,10 @@ dependencies:
   lottie: ^3.1.2
   installed_apps: ^2.1.1
   permission_handler: ^11.3.1
+  shared_preferences: ^2.2.3
+  flutter_background_service: ^5.0.7
+  usage_stats: ^1.1.0
+  flutter_local_notifications: ^17.2.1
 
 dev_dependencies:
   flutter_test:
