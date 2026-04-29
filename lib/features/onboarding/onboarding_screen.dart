@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:usage_stats/usage_stats.dart';
-import 'package:flutter_background_service/flutter_background_service.dart';
 import 'package:permission_handler/permission_handler.dart';
+import '../../core/monitoring_service.dart';
 import '../../core/theme.dart';
 import '../../widgets/jade_button.dart';
 
@@ -39,43 +38,36 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     OnboardingData(
       title: 'Permisos necesarios',
       description:
-          'JADE necesita acceso para ver qué apps usas y enviarte notificaciones de bienestar.',
+          'JADE necesita acceso para detectar cuándo abres apps restringidas y enviarte recordatorios.',
       icon: Icons.key_outlined,
       isPermissionPage: true,
     ),
   ];
 
   Future<void> _requestPermissions() async {
-    // Pedir permiso de notificaciones (Android 13+)
+    // 1. Pedir permiso de notificaciones (Android 13+)
     await Permission.notification.request();
 
-    // Pedir permiso de estadísticas de uso
-    bool? isGranted = await UsageStats.checkUsagePermission();
-    if (isGranted == null || !isGranted) {
-      await UsageStats.grantUsagePermission();
-    } else {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Permisos básicos ya concedidos.')),
-        );
-      }
-    }
+    // 2. Pedir permiso de Accesibilidad
+    await MonitoringService.requestAccessibility();
   }
 
   Future<void> _finishOnboarding() async {
-    bool? isGranted = await UsageStats.checkUsagePermission();
-    if (isGranted == true) {
-      // Iniciar el servicio de monitoreo
-      final service = FlutterBackgroundService();
-      await service.startService();
+    final bool isGranted = await MonitoringService.isAccessibilityGranted();
+    
+    if (isGranted) {
+      // Iniciar el monitoreo reactivo
+      MonitoringService.startMonitoring();
       if (mounted) context.go('/home');
     } else {
+      // Si no lo ha dado, le avisamos pero le dejamos pasar (el Home le avisará de nuevo)
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Por favor, concede el permiso para activar el monitoreo.'),
+            content: Text('Recuerda activar el monitor en los ajustes para proteger tu tiempo.'),
           ),
         );
+        context.go('/home');
       }
     }
   }
@@ -149,7 +141,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                           ElevatedButton.icon(
                             onPressed: _requestPermissions,
                             icon: const Icon(Icons.settings),
-                            label: const Text('Conceder Permisos'),
+                            label: const Text('Configurar Accesibilidad'),
                             style: ElevatedButton.styleFrom(
                               backgroundColor: JadeColors.primary.withValues(alpha: 0.1),
                               foregroundColor: JadeColors.primary,

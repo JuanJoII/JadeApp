@@ -1,115 +1,94 @@
 import 'dart:async';
-import 'dart:ui';
 import 'package:flutter/material.dart';
-import 'package:flutter_background_service/flutter_background_service.dart';
+import 'package:flutter_accessibility_service/flutter_accessibility_service.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:usage_stats/usage_stats.dart';
 
 class MonitoringService {
   static final FlutterLocalNotificationsPlugin _notificationsPlugin =
       FlutterLocalNotificationsPlugin();
 
-  static Future<void> initialize() async {
-    final service = FlutterBackgroundService();
+  static StreamSubscription? _accessibilitySubscription;
 
-    // Configuración de Notificaciones Locales
+  static Future<void> initialize() async {
+    // Configuración de Notificaciones (Solo canales)
     const AndroidInitializationSettings initializationSettingsAndroid =
         AndroidInitializationSettings('@mipmap/ic_launcher');
     const InitializationSettings initializationSettings =
         InitializationSettings(android: initializationSettingsAndroid);
     await _notificationsPlugin.initialize(initializationSettings);
 
-    // Canal de notificación para el servicio en primer plano
-    const AndroidNotificationChannel channel = AndroidNotificationChannel(
-      'jade_monitoring_service',
-      'JADE Monitoring Service',
-      description: 'Este servicio monitorea el uso de aplicaciones.',
-      importance: Importance.low,
+    const AndroidNotificationChannel alertChannel = AndroidNotificationChannel(
+      'jade_alert_channel',
+      'Alertas de JADE',
+      description: 'Notificaciones cuando abres una app bloqueada',
+      importance: Importance.max,
     );
 
     await _notificationsPlugin
         .resolvePlatformSpecificImplementation<
             AndroidFlutterLocalNotificationsPlugin>()
-        ?.createNotificationChannel(channel);
-
-    await service.configure(
-      androidConfiguration: AndroidConfiguration(
-        onStart: onStart,
-        autoStart: false, // El usuario lo activará manualmente o al terminar onboarding
-        isForegroundMode: true,
-        notificationChannelId: 'jade_monitoring_service',
-        initialNotificationTitle: 'JADE está activo',
-        initialNotificationContent: 'Monitoreando tu bienestar digital...',
-        foregroundServiceTypes: [AndroidForegroundType.specialUse],
-      ),
-      iosConfiguration: IosConfiguration(
-        autoStart: false,
-        onForeground: onStart,
-        onBackground: onIosBackground,
-      ),
-    );
+        ?.createNotificationChannel(alertChannel);
   }
 
-  @pragma('vm:entry-point')
-  static Future<bool> onIosBackground(ServiceInstance service) async {
-    return true;
-  }
+  // Iniciar el monitor (Se llama desde el Home cuando el permiso está dado)
+  static Future<void> startMonitoring() async {
+    if (_accessibilitySubscription != null) return;
 
-  @pragma('vm:entry-point')
-  static void onStart(ServiceInstance service) async {
-    DartPluginRegistrant.ensureInitialized();
+    // Esperar un momento a que el sistema registre el cambio de permiso
+    await Future.delayed(const Duration(milliseconds: 500));
 
-    final FlutterLocalNotificationsPlugin notificationsPlugin =
-        FlutterLocalNotificationsPlugin();
+    try {
+      String lastApp = "";
 
-    String lastApp = "";
-
-    Timer.periodic(const Duration(seconds: 2), (timer) async {
-      final prefs = await SharedPreferences.getInstance();
-      final blockedApps = prefs.getStringList('blocked_apps') ?? [];
-      
-      if (blockedApps.isEmpty) return;
-
-      DateTime endDate = DateTime.now();
-      DateTime startDate = endDate.subtract(const Duration(minutes: 1));
-
-      try {
-        List<EventUsageInfo> events = await UsageStats.queryEvents(startDate, endDate);
+      _accessibilitySubscription = FlutterAccessibilityService.accessStream.listen((event) async {
+        final String currentApp = event.packageName ?? "";
         
-        if (events.isNotEmpty) {
-          // Buscamos el último evento de tipo MOVE_TO_FOREGROUND (1)
-          final foregroundEvents = events.where((e) => e.eventType == "1").toList();
-          if (foregroundEvents.isEmpty) return;
+        if (currentApp.isEmpty || 
+            currentApp == "com.example.jade_app" || 
+            currentApp == "com.android.systemui") return;
 
-          String currentApp = foregroundEvents.last.packageName ?? "";
-          
-          if (currentApp != lastApp && blockedApps.contains(currentApp)) {
-            // Mostrar notificación de alerta
-            const AndroidNotificationDetails androidPlatformChannelSpecifics =
-                AndroidNotificationDetails(
-              'jade_alert_channel',
-              'Alertas de JADE',
-              channelDescription: 'Notificaciones cuando abres una app bloqueada',
-              importance: Importance.max,
-              priority: Priority.high,
-              ticker: 'ticker',
-            );
-            const NotificationDetails platformChannelSpecifics =
-                NotificationDetails(android: androidPlatformChannelSpecifics);
+        final prefs = await SharedPreferences.getInstance();
+        final blockedApps = prefs.getStringList('blocked_apps') ?? [];
 
-            await notificationsPlugin.show(
-              1,
-              '¡Momento de consciencia!',
-              'Has abierto una aplicación que querías limitar. ¿Seguro que quieres continuar?',
-              platformChannelSpecifics,
-            );
-          }
-          lastApp = currentApp;
+        if (currentApp != lastApp && blockedApps.contains(currentApp)) {
+          const AndroidNotificationDetails androidPlatformChannelSpecifics =
+              AndroidNotificationDetails(
+            'jade_alert_channel',
+            'Alertas de JADE',
+            importance: Importance.max,
+            priority: Priority.high,
+            fullScreenIntent: true,
+          );
+          const NotificationDetails platformChannelSpecifics =
+              NotificationDetails(android: androidPlatformChannelSpecifics);
+
+          await _notificationsPlugin.show(
+            DateTime.now().millisecond,
+            '¡Momento de consciencia!',
+            'Has abierto una app restringida. ¿Es necesario?',
+            platformChannelSpecifics,
+          );
         }
-      } catch (e) {
-        debugPrint("Error monitoreando apps: $e");
-      }
-    });
+        lastApp = currentApp;
+      }, onError: (error) {
+        debugPrint("Error en el flujo de accesibilidad: $error");
+      });
+    } catch (e) {
+      debugPrint("No se pudo iniciar el monitoreo: $e");
+    }
+  }
+
+  static void stopMonitoring() {
+    _accessibilitySubscription?.cancel();
+    _accessibilitySubscription = null;
+  }
+
+  static Future<bool> isAccessibilityGranted() async {
+    return await FlutterAccessibilityService.isAccessibilityPermissionEnabled();
+  }
+
+  static Future<void> requestAccessibility() async {
+    await FlutterAccessibilityService.requestAccessibilityPermission();
   }
 }

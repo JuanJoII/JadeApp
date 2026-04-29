@@ -1,9 +1,35 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import '../../core/monitoring_service.dart';
 import '../../core/theme.dart';
 
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
+
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  bool _isAccessibilityGranted = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkStatus();
+  }
+
+  Future<void> _checkStatus() async {
+    final granted = await MonitoringService.isAccessibilityGranted();
+    if (granted) {
+      MonitoringService.startMonitoring();
+    }
+    if (mounted) {
+      setState(() {
+        _isAccessibilityGranted = granted;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -25,7 +51,12 @@ class HomeScreen extends StatelessWidget {
                   color: colorScheme.onSurface.withValues(alpha: 0.6),
                 ),
               ),
-              const SizedBox(height: 40),
+              const SizedBox(height: 24),
+              
+              // Tarjeta de Estado Simplificada
+              _buildSimpleStatusCard(),
+              
+              const SizedBox(height: 32),
               // Tarjeta de Racha
               Container(
                 width: double.infinity,
@@ -118,6 +149,55 @@ class HomeScreen extends StatelessWidget {
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildSimpleStatusCard() {
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: _isAccessibilityGranted 
+            ? JadeColors.primary.withValues(alpha: 0.05)
+            : colorScheme.secondaryContainer.withValues(alpha: 0.3),
+        borderRadius: BorderRadius.circular(24),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            _isAccessibilityGranted ? Icons.shield_outlined : Icons.info_outline,
+            color: JadeColors.primary,
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  _isAccessibilityGranted ? "Monitor Activo" : "Permiso de Accesibilidad",
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                ),
+                Text(
+                  _isAccessibilityGranted 
+                      ? "Protegiendo tu santuario..." 
+                      : "Necesario para detectar apps.",
+                  style: const TextStyle(fontSize: 12),
+                ),
+              ],
+            ),
+          ),
+          if (!_isAccessibilityGranted)
+            ElevatedButton(
+              onPressed: () async {
+                await MonitoringService.requestAccessibility();
+                _checkStatus();
+              },
+              child: const Text("Activar"),
+            ),
+        ],
       ),
     );
   }
