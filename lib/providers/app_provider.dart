@@ -3,6 +3,21 @@ import 'package:installed_apps/installed_apps.dart';
 import 'package:installed_apps/app_info.dart' as ia;
 import '../models/app_info.dart';
 
+final appSearchQueryProvider = StateProvider<String>((ref) => '');
+final showSystemAppsProvider = StateProvider<bool>((ref) => false);
+
+final filteredAppListProvider = Provider<List<AppInfo>>((ref) {
+  final allApps = ref.watch(appListProvider);
+  final searchQuery = ref.watch(appSearchQueryProvider).toLowerCase();
+
+  if (searchQuery.isEmpty) return allApps;
+
+  return allApps.where((app) {
+    return app.name.toLowerCase().contains(searchQuery) ||
+        app.packageName.toLowerCase().contains(searchQuery);
+  }).toList();
+});
+
 final appListProvider = StateNotifierProvider<AppListNotifier, List<AppInfo>>((ref) {
   return AppListNotifier();
 });
@@ -10,14 +25,11 @@ final appListProvider = StateNotifierProvider<AppListNotifier, List<AppInfo>>((r
 class AppListNotifier extends StateNotifier<List<AppInfo>> {
   AppListNotifier() : super([]);
 
-  Future<void> syncApps() async {
+  Future<void> syncApps({bool includeSystemApps = false}) async {
     try {
-      // Parámetros confirmados para installed_apps 2.1.1:
-      // withIcon: bool (incluye los bytes del icono)
-      // excludeSystemApps: bool (por defecto true, ocultamos apps de sistema para UX)
       List<ia.AppInfo> installedApps = await InstalledApps.getInstalledApps(
         withIcon: true,
-        excludeSystemApps: true,
+        excludeSystemApps: !includeSystemApps,
       );
 
       state = installedApps.map((app) {

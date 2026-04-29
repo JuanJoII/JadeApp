@@ -13,6 +13,7 @@ class MonitoringScreen extends ConsumerStatefulWidget {
 
 class _MonitoringScreenState extends ConsumerState<MonitoringScreen> {
   bool _isLoading = false;
+  final TextEditingController _searchController = TextEditingController();
 
   @override
   void initState() {
@@ -20,9 +21,16 @@ class _MonitoringScreenState extends ConsumerState<MonitoringScreen> {
     _initSync();
   }
 
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
   Future<void> _initSync() async {
     setState(() => _isLoading = true);
-    await ref.read(appListProvider.notifier).syncApps();
+    final showSystem = ref.read(showSystemAppsProvider);
+    await ref.read(appListProvider.notifier).syncApps(includeSystemApps: showSystem);
     if (mounted) {
       setState(() => _isLoading = false);
     }
@@ -30,13 +38,14 @@ class _MonitoringScreenState extends ConsumerState<MonitoringScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final apps = ref.watch(appListProvider);
+    final apps = ref.watch(filteredAppListProvider);
+    final showSystemApps = ref.watch(showSystemAppsProvider);
     final colorScheme = Theme.of(context).colorScheme;
 
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          'Bienestar Digital',
+          'Monitoreo',
           style: Theme.of(context).textTheme.headlineSmall,
         ),
         actions: [
@@ -62,19 +71,59 @@ class _MonitoringScreenState extends ConsumerState<MonitoringScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const SizedBox(height: 16),
-            Text(
-              'Selecciona las apps que deseas monitorear y limitar su uso.',
-              style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                color: colorScheme.onSurface.withValues(alpha: 0.7),
+            // Buscador
+            TextField(
+              controller: _searchController,
+              onChanged: (value) => ref.read(appSearchQueryProvider.notifier).state = value,
+              decoration: InputDecoration(
+                hintText: 'Buscar aplicación...',
+                prefixIcon: const Icon(Icons.search),
+                filled: true,
+                fillColor: colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  borderSide: BorderSide.none,
+                ),
+                contentPadding: const EdgeInsets.symmetric(vertical: 0),
               ),
             ),
-            const SizedBox(height: 32),
+            const SizedBox(height: 16),
+            // Filtro de Apps de Sistema
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Mostrar apps de sistema',
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: colorScheme.onSurface.withValues(alpha: 0.7),
+                  ),
+                ),
+                Transform.scale(
+                  scale: 0.8,
+                  child: Switch(
+                    value: showSystemApps,
+                    onChanged: (value) {
+                      ref.read(showSystemAppsProvider.notifier).state = value;
+                      _initSync(); // Re-sincronizar con el nuevo filtro
+                    },
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
             Expanded(
               child: _isLoading && apps.isEmpty
                   ? const Center(child: CircularProgressIndicator())
                   : apps.isEmpty
-                      ? const Center(
-                          child: Text('No se encontraron aplicaciones.'),
+                      ? Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(Icons.search_off, size: 64, color: colorScheme.onSurface.withValues(alpha: 0.2)),
+                              const SizedBox(height: 16),
+                              const Text('No se encontraron aplicaciones.'),
+                            ],
+                          ),
                         )
                       : ListView.separated(
                           itemCount: apps.length,
