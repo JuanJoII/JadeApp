@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'core/theme.dart';
 import 'core/monitoring_service.dart';
@@ -7,6 +8,9 @@ import 'routes.dart';
 void main() async {
   // Asegurar que los widgets estén inicializados
   WidgetsFlutterBinding.ensureInitialized();
+  
+  // Configurar UI inmersiva (ocultar barra de navegación de forma predeterminada)
+  SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
 
   // Inicializar servicio de monitoreo
   await MonitoringService.initialize();
@@ -22,7 +26,7 @@ class JadeApp extends ConsumerWidget {
     final themeMode = ref.watch(themeModeProvider);
 
     return MaterialApp.router(
-      title: 'JADE Digital Wellness',
+      title: 'JADE',
       debugShowCheckedModeBanner: false,
       theme: JadeTheme.lightTheme,
       darkTheme: JadeTheme.darkTheme,

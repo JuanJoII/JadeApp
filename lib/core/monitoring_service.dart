@@ -44,21 +44,18 @@ class MonitoringService {
     try {
       final prefs = await SharedPreferences.getInstance();
       _cachedBlockedApps = prefs.getStringList('blocked_apps') ?? [];
-      debugPrint("JADE_DEBUG: Caché cargado. Apps bloqueadas (${_cachedBlockedApps.length}): ${_cachedBlockedApps.join(', ')}");
     } catch (e) {
-      debugPrint("JADE_DEBUG_ERROR: Error al cargar caché: $e");
+      // Log solo en caso de error crítico
+      debugPrint("JADE_ERROR: Error al cargar caché: $e");
     }
   }
 
   static Future<bool> requestNotificationPermission() async {
-    debugPrint("JADE_DEBUG: Solicitando permiso de notificaciones...");
     if (await isAccessibilityGranted()) {
       final plugin = _notificationsPlugin.resolvePlatformSpecificImplementation<
           AndroidFlutterLocalNotificationsPlugin>();
       if (plugin != null) {
-        final result = await plugin.requestNotificationsPermission() ?? false;
-        debugPrint("JADE_DEBUG: Resultado permiso notificaciones: $result");
-        return result;
+        return await plugin.requestNotificationsPermission() ?? false;
       }
     }
     return false;
@@ -66,12 +63,7 @@ class MonitoringService {
 
   // Iniciar el monitor
   static Future<void> startMonitoring() async {
-    debugPrint("JADE_DEBUG: Intentando iniciar MonitoringService...");
-    
-    if (_accessibilitySubscription != null) {
-      debugPrint("JADE_DEBUG: Monitoreo omitido: ya existe una suscripción activa.");
-      return;
-    }
+    if (_accessibilitySubscription != null) return;
 
     await refreshBlockedAppsCache();
     await Future.delayed(const Duration(milliseconds: 500));
@@ -82,20 +74,13 @@ class MonitoringService {
       _accessibilitySubscription = FlutterAccessibilityService.accessStream.listen((event) {
         final String currentApp = event.packageName ?? "";
         
-        // LOG VITAL: Ver qué llega del sistema
-        debugPrint("JADE_DEBUG: EVENTO SISTEMA -> $currentApp (Tipo: ${event.eventType})");
-
         if (currentApp.isEmpty || currentApp == "com.android.systemui") return;
-
-        // Ignorar nuestra propia app para evitar bucles
         if (currentApp.contains("jade_app")) return;
 
         if (currentApp != lastApp && _cachedBlockedApps.contains(currentApp)) {
-          debugPrint("JADE_DEBUG: ¡DETECCIÓN POSITIVA! Bloqueando $currentApp");
-          
           final now = DateTime.now();
           if (_lastNotificationTime == null || 
-              now.difference(_lastNotificationTime!) > const Duration(seconds: 10)) {
+              now.difference(_lastNotificationTime!) > const Duration(seconds: 15)) {
             
             _showBlockNotification(currentApp);
             _lastNotificationTime = now;
@@ -103,18 +88,14 @@ class MonitoringService {
         }
         lastApp = currentApp;
       }, onError: (error) {
-        debugPrint("JADE_DEBUG_ERROR: Error en el Stream de Accesibilidad: $error");
+        debugPrint("JADE_ERROR: Error en el Stream: $error");
       });
-      
-      debugPrint("JADE_DEBUG: Suscripción al stream completada.");
     } catch (e) {
-      debugPrint("JADE_DEBUG_ERROR: Fallo al iniciar monitoreo: $e");
+      debugPrint("JADE_ERROR: Fallo al iniciar monitoreo: $e");
     }
   }
 
   static Future<void> _showBlockNotification(String packageName) async {
-    debugPrint("JADE_DEBUG: Intentando mostrar notificación para $packageName");
-    
     const AndroidNotificationDetails androidPlatformChannelSpecifics =
         AndroidNotificationDetails(
       'jade_alert_channel',
@@ -122,7 +103,7 @@ class MonitoringService {
       importance: Importance.max,
       priority: Priority.high,
       ticker: 'Alerta de JADE',
-      icon: '@mipmap/ic_launcher', // Asegurar que el icono sea el correcto
+      icon: '@mipmap/ic_launcher',
     );
     
     const NotificationDetails platformChannelSpecifics =
@@ -130,14 +111,13 @@ class MonitoringService {
 
     try {
       await _notificationsPlugin.show(
-        DateTime.now().millisecond, // ID único para cada notificación
+        DateTime.now().millisecond,
         '¡Momento de pausa!',
         'Has abierto una app restringida. ¿Realmente la necesitas ahora?',
         platformChannelSpecifics,
       );
-      debugPrint("JADE_DEBUG: Notificación enviada al sistema.");
     } catch (e) {
-      debugPrint("JADE_DEBUG_ERROR: Fallo al mostrar notificación: $e");
+      debugPrint("JADE_ERROR: Fallo al mostrar notificación: $e");
     }
   }
 
