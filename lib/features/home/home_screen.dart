@@ -22,7 +22,10 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<void> _checkStatus() async {
     final granted = await MonitoringService.isAccessibilityGranted();
     if (granted) {
-      MonitoringService.startMonitoring();
+      debugPrint("JADE_DEBUG: Accesibilidad concedida. Iniciando monitoreo...");
+      await MonitoringService.startMonitoring();
+      // En Android 13+, necesitamos pedir notificaciones explícitamente
+      await MonitoringService.requestNotificationPermission();
     }
     if (mounted) {
       setState(() {
@@ -190,12 +193,20 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
           if (!_isAccessibilityGranted)
-            ElevatedButton(
-              onPressed: () async {
-                await MonitoringService.requestAccessibility();
-                _checkStatus();
-              },
-              child: const Text("Activar"),
+            SizedBox(
+              width: 100, // Tamaño fijo para evitar el error de layout en Row
+              child: ElevatedButton(
+                onPressed: () async {
+                  await MonitoringService.requestAccessibility();
+                  await MonitoringService.requestNotificationPermission();
+                  _checkStatus();
+                },
+                style: ElevatedButton.styleFrom(
+                  minimumSize: const Size(0, 40), // Sobrescribir el ancho infinito del tema
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                ),
+                child: const Text("Activar", style: TextStyle(fontSize: 12)),
+              ),
             ),
         ],
       ),

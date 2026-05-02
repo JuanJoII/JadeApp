@@ -3,6 +3,7 @@ import 'package:installed_apps/installed_apps.dart';
 import 'package:installed_apps/app_info.dart' as ia;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/app_info.dart';
+import '../core/monitoring_service.dart';
 
 final appSearchQueryProvider = StateProvider<String>((ref) => '');
 final showSystemAppsProvider = StateProvider<bool>((ref) => false);
@@ -73,5 +74,8 @@ class AppListNotifier extends StateNotifier<List<AppInfo>> {
         .map((app) => app.packageName)
         .toList();
     await prefs.setStringList('blocked_apps', blockedList);
+    
+    // Notificar al servicio de monitoreo que el caché debe actualizarse
+    await MonitoringService.refreshBlockedAppsCache();
   }
 }

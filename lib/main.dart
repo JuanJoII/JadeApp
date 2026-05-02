@@ -7,15 +7,11 @@ import 'routes.dart';
 void main() async {
   // Asegurar que los widgets estén inicializados
   WidgetsFlutterBinding.ensureInitialized();
-  
+
   // Inicializar servicio de monitoreo
   await MonitoringService.initialize();
-  
-  runApp(
-    const ProviderScope(
-      child: JadeApp(),
-    ),
-  );
+
+  runApp(const ProviderScope(child: JadeApp()));
 }
 
 class JadeApp extends ConsumerWidget {
