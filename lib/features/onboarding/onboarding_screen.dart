@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 import 'package:permission_handler/permission_handler.dart';
 import '../../core/monitoring_service.dart';
@@ -80,17 +81,30 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       body: SafeArea(
         child: Column(
           children: [
-            Align(
-              alignment: Alignment.topRight,
-              child: _currentPage != _pages.length - 1 
-                ? TextButton(
-                    onPressed: () => context.go('/home'),
-                    child: const Text(
-                      'Omitir',
-                      style: TextStyle(color: JadeColors.primary),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16.0),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.only(top: 16.0, left: 16.0),
+                    child: SvgPicture.asset(
+                      'lib/assets/Logo_Jade.svg',
+                      height: 40,
                     ),
-                  )
-                : const SizedBox(height: 48),
+                  ),
+                  if (_currentPage != _pages.length - 1)
+                    TextButton(
+                      onPressed: () => context.go('/home'),
+                      child: const Text(
+                        'Omitir',
+                        style: TextStyle(color: JadeColors.primary),
+                      ),
+                    )
+                  else
+                    const SizedBox(height: 48, width: 60),
+                ],
+              ),
             ),
             Expanded(
               child: PageView.builder(
@@ -104,18 +118,25 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Container(
-                          padding: const EdgeInsets.all(40),
-                          decoration: BoxDecoration(
-                            color: JadeColors.primary.withValues(alpha: 0.05),
-                            shape: BoxShape.circle,
-                          ),
-                          child: Icon(
-                            data.icon,
-                            size: 100,
-                            color: JadeColors.primary,
-                          ),
-                        ),
+                        index == 0
+                            ? SvgPicture.asset(
+                                'lib/assets/Logo_Jade.svg',
+                                height: 120,
+                              )
+                            : Container(
+                                padding: const EdgeInsets.all(40),
+                                decoration: BoxDecoration(
+                                  color: JadeColors.primary.withValues(
+                                    alpha: 0.05,
+                                  ),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: Icon(
+                                  data.icon,
+                                  size: 100,
+                                  color: JadeColors.primary,
+                                ),
+                              ),
                         const SizedBox(height: 48),
                         Text(
                           data.title,

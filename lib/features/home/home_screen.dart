@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/monitoring_service.dart';
 import '../../core/theme.dart';
@@ -46,15 +47,29 @@ class _HomeScreenState extends State<HomeScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Hola, Jade', style: textTheme.displayLarge),
-              const SizedBox(height: 8),
-              Text(
-                'Tu santuario digital está listo.',
-                style: textTheme.bodyLarge?.copyWith(
-                  color: colorScheme.onSurface.withValues(alpha: 0.6),
-                ),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Hola, Jade', style: textTheme.displayLarge),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Tu santuario digital está listo.',
+                        style: textTheme.bodyLarge?.copyWith(
+                          color: colorScheme.onSurface.withValues(alpha: 0.6),
+                        ),
+                      ),
+                    ],
+                  ),
+                  SvgPicture.asset(
+                    'lib/assets/Logo_Jade.svg',
+                    height: 60,
+                  ),
+                ],
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: 32),
               
               // Tarjeta de Estado Simplificada
               _buildSimpleStatusCard(),
