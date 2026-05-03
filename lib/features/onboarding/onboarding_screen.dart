@@ -55,7 +55,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
   Future<void> _finishOnboarding() async {
     final bool isGranted = await MonitoringService.isAccessibilityGranted();
-    
+
     if (isGranted) {
       // Iniciar el monitoreo reactivo
       MonitoringService.startMonitoring();
@@ -65,7 +65,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Recuerda activar el monitor en los ajustes para proteger tu tiempo.'),
+            content: Text(
+              'Recuerda activar el monitor en los ajustes para proteger tu tiempo.',
+            ),
           ),
         );
         context.go('/home');
@@ -88,10 +90,6 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 children: [
                   Padding(
                     padding: const EdgeInsets.only(top: 16.0, left: 16.0),
-                    child: SvgPicture.asset(
-                      'lib/assets/Logo_Jade.svg',
-                      height: 40,
-                    ),
                   ),
                   if (_currentPage != _pages.length - 1)
                     TextButton(
@@ -120,8 +118,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                       children: [
                         index == 0
                             ? SvgPicture.asset(
-                                'lib/assets/Logo_Jade.svg',
-                                height: 120,
+                                'lib/assets/Logo_Jade_No_Bg.svg',
+                                height: 200,
                               )
                             : Container(
                                 padding: const EdgeInsets.all(40),
@@ -164,10 +162,15 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                             icon: const Icon(Icons.settings),
                             label: const Text('Configurar Accesibilidad'),
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: JadeColors.primary.withValues(alpha: 0.1),
+                              backgroundColor: JadeColors.primary.withValues(
+                                alpha: 0.1,
+                              ),
                               foregroundColor: JadeColors.primary,
                               elevation: 0,
-                              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 24,
+                                vertical: 12,
+                              ),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(16),
                               ),

@@ -80,6 +80,8 @@ flutter:
   uses-material-design: true
 
   assets:
+    - lib/assets/Logo_Jade_No_Bg.svg
+    - lib/assets/Logo_Jade_No_Bg.png
     - lib/assets/Logo_Jade.svg
     - lib/assets/Logo_Jade.png
     - lib/assets/Jade_splash_screen.png

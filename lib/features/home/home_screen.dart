@@ -50,30 +50,32 @@ class _HomeScreenState extends State<HomeScreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('Hola, Jade', style: textTheme.displayLarge),
-                      const SizedBox(height: 8),
-                      Text(
-                        'Tu santuario digital está listo.',
-                        style: textTheme.bodyLarge?.copyWith(
-                          color: colorScheme.onSurface.withValues(alpha: 0.6),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Hola, Jade', style: textTheme.displayLarge),
+                        const SizedBox(height: 8),
+                        Text(
+                          'Tu santuario digital está listo.',
+                          style: textTheme.bodyLarge?.copyWith(
+                            color: colorScheme.onSurface.withValues(alpha: 0.6),
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                   SvgPicture.asset(
-                    'lib/assets/Logo_Jade.svg',
-                    height: 60,
+                    'lib/assets/Logo_Jade_No_Bg.svg',
+                    height: 70,
                   ),
                 ],
               ),
               const SizedBox(height: 32),
-              
+
               // Tarjeta de Estado Simplificada
               _buildSimpleStatusCard(),
-              
+
               const SizedBox(height: 32),
               // Tarjeta de Racha
               Container(
@@ -178,7 +180,7 @@ class _HomeScreenState extends State<HomeScreen> {
       width: double.infinity,
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: _isAccessibilityGranted 
+        color: _isAccessibilityGranted
             ? JadeColors.primary.withValues(alpha: 0.05)
             : colorScheme.secondaryContainer.withValues(alpha: 0.3),
         borderRadius: BorderRadius.circular(24),
@@ -186,7 +188,9 @@ class _HomeScreenState extends State<HomeScreen> {
       child: Row(
         children: [
           Icon(
-            _isAccessibilityGranted ? Icons.shield_outlined : Icons.info_outline,
+            _isAccessibilityGranted
+                ? Icons.shield_outlined
+                : Icons.info_outline,
             color: JadeColors.primary,
           ),
           const SizedBox(width: 16),
@@ -195,12 +199,14 @@ class _HomeScreenState extends State<HomeScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  _isAccessibilityGranted ? "Monitor Activo" : "Permiso de Accesibilidad",
+                  _isAccessibilityGranted
+                      ? "Monitor Activo"
+                      : "Permiso de Accesibilidad",
                   style: const TextStyle(fontWeight: FontWeight.bold),
                 ),
                 Text(
-                  _isAccessibilityGranted 
-                      ? "Protegiendo tu santuario..." 
+                  _isAccessibilityGranted
+                      ? "Protegiendo tu santuario..."
                       : "Necesario para detectar apps.",
                   style: const TextStyle(fontSize: 12),
                 ),
@@ -217,7 +223,10 @@ class _HomeScreenState extends State<HomeScreen> {
                   _checkStatus();
                 },
                 style: ElevatedButton.styleFrom(
-                  minimumSize: const Size(0, 40), // Sobrescribir el ancho infinito del tema
+                  minimumSize: const Size(
+                    0,
+                    40,
+                  ), // Sobrescribir el ancho infinito del tema
                   padding: const EdgeInsets.symmetric(horizontal: 12),
                 ),
                 child: const Text("Activar", style: TextStyle(fontSize: 12)),

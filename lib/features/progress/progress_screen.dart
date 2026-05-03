@@ -1,13 +1,22 @@
+import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import '../../core/theme.dart';
 
-class ProgressScreen extends StatelessWidget {
+class ProgressScreen extends StatefulWidget {
   const ProgressScreen({super.key});
+
+  @override
+  State<ProgressScreen> createState() => _ProgressScreenState();
+}
+
+class _ProgressScreenState extends State<ProgressScreen> {
+  String _selectedWeek = 'Esta semana';
+  final List<String> _weeks = ['Esta semana', 'Semana pasada', 'Hace 2 semanas'];
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
+    final colorScheme = theme.colorScheme;
 
     return Scaffold(
       body: SafeArea(
@@ -20,14 +29,14 @@ class ProgressScreen extends StatelessWidget {
               Text('Monitoreo de Uso', style: theme.textTheme.displayLarge),
               const SizedBox(height: 12),
               Text(
-                'Tu tiempo es sagrado. Así lo has distribuido hoy.',
+                'Tu tiempo es sagrado. Así lo has distribuido.',
                 style: theme.textTheme.bodyLarge?.copyWith(
-                  color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                  color: colorScheme.onSurface.withValues(alpha: 0.6),
                 ),
               ),
-              const SizedBox(height: 40),
+              const SizedBox(height: 32),
 
-              // Tarjeta de Resumen Central
+              // Tarjeta de Resumen Central (AHORA ARRIBA)
               Center(
                 child: Container(
                   width: double.infinity,
@@ -68,9 +77,9 @@ class ProgressScreen extends StatelessWidget {
                                 ),
                               ),
                               Text(
-                                'Tiempo Total',
+                                'Tiempo Total Hoy',
                                 style: theme.textTheme.labelMedium?.copyWith(
-                                  color: theme.colorScheme.onSurface.withValues(
+                                  color: colorScheme.onSurface.withValues(
                                     alpha: 0.5,
                                   ),
                                 ),
@@ -97,6 +106,70 @@ class ProgressScreen extends StatelessWidget {
                       ),
                     ],
                   ),
+                ),
+              ),
+
+              const SizedBox(height: 32),
+
+              // Selector de Semana y Gráfica (AHORA DEBAJO)
+              Container(
+                padding: const EdgeInsets.all(24),
+                decoration: BoxDecoration(
+                  color: theme.brightness == Brightness.light
+                      ? JadeColors.surfaceContainerLow
+                      : JadeColors.darkSurfaceContainer,
+                  borderRadius: BorderRadius.circular(32),
+                ),
+                child: Column(
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'Actividad Semanal',
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12),
+                          decoration: BoxDecoration(
+                            color: JadeColors.primary.withValues(alpha: 0.05),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: DropdownButtonHideUnderline(
+                            child: DropdownButton<String>(
+                              value: _selectedWeek,
+                              icon: const Icon(
+                                Icons.keyboard_arrow_down,
+                                color: JadeColors.primary,
+                                size: 20,
+                              ),
+                              style: theme.textTheme.bodyMedium?.copyWith(
+                                color: JadeColors.primary,
+                                fontWeight: FontWeight.w600,
+                              ),
+                              onChanged: (String? newValue) {
+                                if (newValue != null) {
+                                  setState(() => _selectedWeek = newValue);
+                                }
+                              },
+                              items: _weeks.map<DropdownMenuItem<String>>((
+                                String value,
+                              ) {
+                                return DropdownMenuItem<String>(
+                                  value: value,
+                                  child: Text(value),
+                                );
+                              }).toList(),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 32),
+                    SizedBox(height: 200, child: _buildBarChart(theme)),
+                  ],
                 ),
               ),
 
@@ -141,6 +214,82 @@ class ProgressScreen extends StatelessWidget {
                   style: TextButton.styleFrom(
                     foregroundColor: JadeColors.primary,
                   ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildBarChart(ThemeData theme) {
+    // Mock data: horas de uso por día (L, M, M, J, V, S, D)
+    final List<double> weeklyUsage = [2.5, 3.2, 1.8, 4.0, 2.2, 5.5, 3.0];
+    final colorScheme = theme.colorScheme;
+
+    return BarChart(
+      BarChartData(
+        alignment: BarChartAlignment.spaceAround,
+        maxY: 6,
+        barTouchData: BarTouchData(enabled: false),
+        titlesData: FlTitlesData(
+          show: true,
+          bottomTitles: AxisTitles(
+            sideTitles: SideTitles(
+              showTitles: true,
+              getTitlesWidget: (value, meta) {
+                const days = ['L', 'M', 'M', 'J', 'V', 'S', 'D'];
+                final List<double> weeklyUsage = [2.5, 3.2, 1.8, 4.0, 2.2, 5.5, 3.0];
+                return Padding(
+                  padding: const EdgeInsets.only(top: 8.0),
+                  child: Column(
+                    children: [
+                      Text(
+                        days[value.toInt()],
+                        style: theme.textTheme.labelSmall?.copyWith(
+                          color: colorScheme.onSurface.withValues(alpha: 0.4),
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      Text(
+                        '${weeklyUsage[value.toInt()]}h',
+                        style: theme.textTheme.labelSmall?.copyWith(
+                          color: JadeColors.primary.withValues(alpha: 0.6),
+                          fontSize: 10,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              },
+              reservedSize: 42,
+            ),
+          ),
+          leftTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+          topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+          rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+        ),
+        gridData: const FlGridData(show: false),
+        borderData: FlBorderData(show: false),
+        barGroups: List.generate(
+          weeklyUsage.length,
+          (i) => BarChartGroupData(
+            x: i,
+            barRods: [
+              BarChartRodData(
+                toY: weeklyUsage[i],
+                color: JadeColors.primary,
+                width: 14,
+                borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(6),
+                  bottom: Radius.circular(6),
+                ),
+                backDrawRodData: BackgroundBarChartRodData(
+                  show: true,
+                  toY: 6,
+                  color: JadeColors.primary.withValues(alpha: 0.05),
                 ),
               ),
             ],
