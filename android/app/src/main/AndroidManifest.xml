@@ -8,7 +8,7 @@
     <application
         android:label="JADE"
         android:name="${applicationName}"
-        android:icon="@mipmap/ic_launcher">
+        android:icon="@mipmap/launcher_icon">
         
         <service
             android:name="slayer.accessibility.service.flutter_accessibility_service.AccessibilityListener"
