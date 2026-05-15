@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
@@ -38,35 +39,42 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     ),
     OnboardingData(
       title: 'Permisos necesarios',
-      description:
-          'JADE necesita acceso para detectar cuándo abres apps restringidas y enviarte recordatorios.',
+      description: Platform.isIOS
+          ? 'JADE necesita permiso para enviarte notificaciones y ayudarte a mantener tu enfoque.'
+          : 'JADE necesita acceso para detectar cuándo abres apps restringidas y enviarte recordatorios.',
       icon: Icons.key_outlined,
       isPermissionPage: true,
     ),
   ];
 
   Future<void> _requestPermissions() async {
-    // 1. Pedir permiso de notificaciones (Android 13+)
+    // 1. Pedir permiso de notificaciones
     await Permission.notification.request();
 
-    // 2. Pedir permiso de Accesibilidad
-    await MonitoringService.requestAccessibility();
+    // 2. Pedir permiso de Accesibilidad (Solo Android)
+    if (Platform.isAndroid) {
+      await MonitoringService.requestAccessibility();
+    }
   }
 
   Future<void> _finishOnboarding() async {
     final bool isGranted = await MonitoringService.isAccessibilityGranted();
 
     if (isGranted) {
-      // Iniciar el monitoreo reactivo
-      MonitoringService.startMonitoring();
+      // Iniciar el monitoreo reactivo (Solo Android por ahora)
+      if (Platform.isAndroid) {
+        MonitoringService.startMonitoring();
+      }
       if (mounted) context.go('/home');
     } else {
       // Si no lo ha dado, le avisamos pero le dejamos pasar (el Home le avisará de nuevo)
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
+          SnackBar(
             content: Text(
-              'Recuerda activar el monitor en los ajustes para proteger tu tiempo.',
+              Platform.isIOS
+                  ? 'Recuerda activar las notificaciones para que JADE pueda ayudarte.'
+                  : 'Recuerda activar el monitor en los ajustes para proteger tu tiempo.',
             ),
           ),
         );
@@ -88,8 +96,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Padding(
-                    padding: const EdgeInsets.only(top: 16.0, left: 16.0),
+                  const Padding(
+                    padding: EdgeInsets.only(top: 16.0, left: 16.0),
                   ),
                   if (_currentPage != _pages.length - 1)
                     TextButton(
@@ -160,7 +168,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                           ElevatedButton.icon(
                             onPressed: _requestPermissions,
                             icon: const Icon(Icons.settings),
-                            label: const Text('Configurar Accesibilidad'),
+                            label: Text(Platform.isIOS
+                                ? 'Configurar Notificaciones'
+                                : 'Configurar Accesibilidad'),
                             style: ElevatedButton.styleFrom(
                               backgroundColor: JadeColors.primary.withValues(
                                 alpha: 0.1,
@@ -229,6 +239,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     );
   }
 }
+
 
 class OnboardingData {
   final String title;

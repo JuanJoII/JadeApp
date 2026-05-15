@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_accessibility_service/flutter_accessibility_service.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
@@ -19,24 +20,36 @@ class MonitoringService {
     const AndroidInitializationSettings initializationSettingsAndroid =
         AndroidInitializationSettings('@mipmap/ic_launcher');
     
-    const InitializationSettings initializationSettings =
-        InitializationSettings(android: initializationSettingsAndroid);
+    const DarwinInitializationSettings initializationSettingsDarwin =
+        DarwinInitializationSettings(
+      requestAlertPermission: true,
+      requestBadgePermission: true,
+      requestSoundPermission: true,
+    );
+
+    final InitializationSettings initializationSettings = InitializationSettings(
+      android: initializationSettingsAndroid,
+      iOS: initializationSettingsDarwin,
+      macOS: initializationSettingsDarwin,
+    );
     
     await _notificationsPlugin.initialize(initializationSettings);
 
-    const AndroidNotificationChannel alertChannel = AndroidNotificationChannel(
-      'jade_alert_channel',
-      'Alertas de JADE',
-      description: 'Notificaciones cuando abres una app bloqueada',
-      importance: Importance.max,
-      playSound: true,
-      enableVibration: true,
-    );
+    if (Platform.isAndroid) {
+      const AndroidNotificationChannel alertChannel = AndroidNotificationChannel(
+        'jade_alert_channel',
+        'Alertas de JADE',
+        description: 'Notificaciones cuando abres una app bloqueada',
+        importance: Importance.max,
+        playSound: true,
+        enableVibration: true,
+      );
 
-    await _notificationsPlugin
-        .resolvePlatformSpecificImplementation<
-            AndroidFlutterLocalNotificationsPlugin>()
-        ?.createNotificationChannel(alertChannel);
+      await _notificationsPlugin
+          .resolvePlatformSpecificImplementation<
+              AndroidFlutterLocalNotificationsPlugin>()
+          ?.createNotificationChannel(alertChannel);
+    }
     
     // Cargar apps bloqueadas inicialmente
     await refreshBlockedAppsCache();
@@ -53,6 +66,18 @@ class MonitoringService {
   }
 
   static Future<bool> requestNotificationPermission() async {
+    if (Platform.isIOS) {
+      return await _notificationsPlugin
+              .resolvePlatformSpecificImplementation<
+                  IOSFlutterLocalNotificationsPlugin>()
+              ?.requestPermissions(
+                alert: true,
+                badge: true,
+                sound: true,
+              ) ??
+          false;
+    }
+
     if (await isAccessibilityGranted()) {
       final plugin = _notificationsPlugin.resolvePlatformSpecificImplementation<
           AndroidFlutterLocalNotificationsPlugin>();
@@ -65,6 +90,11 @@ class MonitoringService {
 
   // Iniciar el monitor
   static Future<void> startMonitoring() async {
+    if (!Platform.isAndroid) {
+      debugPrint("JADE_INFO: Monitoreo de accesibilidad no disponible en esta plataforma.");
+      return;
+    }
+
     if (_accessibilitySubscription != null) return;
 
     await refreshBlockedAppsCache();
@@ -144,8 +174,17 @@ class MonitoringService {
       icon: '@mipmap/ic_launcher',
     );
     
-    const NotificationDetails platformChannelSpecifics =
-        NotificationDetails(android: androidPlatformChannelSpecifics);
+    const DarwinNotificationDetails darwinPlatformChannelSpecifics =
+        DarwinNotificationDetails(
+      presentAlert: true,
+      presentBadge: true,
+      presentSound: true,
+    );
+
+    final NotificationDetails platformChannelSpecifics = NotificationDetails(
+      android: androidPlatformChannelSpecifics,
+      iOS: darwinPlatformChannelSpecifics,
+    );
 
     try {
       await _notificationsPlugin.show(
@@ -170,8 +209,17 @@ class MonitoringService {
       icon: '@mipmap/ic_launcher',
     );
     
-    const NotificationDetails platformChannelSpecifics =
-        NotificationDetails(android: androidPlatformChannelSpecifics);
+    const DarwinNotificationDetails darwinPlatformChannelSpecifics =
+        DarwinNotificationDetails(
+      presentAlert: true,
+      presentBadge: true,
+      presentSound: true,
+    );
+
+    final NotificationDetails platformChannelSpecifics = NotificationDetails(
+      android: androidPlatformChannelSpecifics,
+      iOS: darwinPlatformChannelSpecifics,
+    );
 
     try {
       await _notificationsPlugin.show(
@@ -192,10 +240,14 @@ class MonitoringService {
   }
 
   static Future<bool> isAccessibilityGranted() async {
+    if (!Platform.isAndroid) return true; // No aplica en iOS
     return await FlutterAccessibilityService.isAccessibilityPermissionEnabled();
   }
 
   static Future<void> requestAccessibility() async {
-    await FlutterAccessibilityService.requestAccessibilityPermission();
+    if (Platform.isAndroid) {
+      await FlutterAccessibilityService.requestAccessibilityPermission();
+    }
   }
 }
+

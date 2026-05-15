@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -70,6 +71,30 @@ class _MonitoringScreenState extends ConsumerState<MonitoringScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            if (Platform.isIOS)
+              Container(
+                margin: const EdgeInsets.only(bottom: 16),
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.amber.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.amber.withValues(alpha: 0.5)),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.info_outline, color: Colors.amber),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        'En iOS, el listado de apps y el bloqueo automático están limitados por el sistema.',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: Colors.amber.shade900,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             const SizedBox(height: 16),
             // Buscador
             TextField(
@@ -194,19 +219,21 @@ class _MonitoringScreenState extends ConsumerState<MonitoringScreen> {
                           },
                         ),
             ),
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 24.0),
-              child: SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: () => context.push('/overlay'),
-                  child: const Text('Probar Bloqueo (Overlay)'),
+            if (Platform.isAndroid)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 24.0),
+                child: SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: () => context.push('/overlay'),
+                    child: const Text('Probar Bloqueo (Overlay)'),
+                  ),
                 ),
               ),
-            ),
           ],
         ),
       ),
     );
   }
 }
+

@@ -68,5 +68,22 @@
 		</array>
 		<key>UIStatusBarHidden</key>
 		<false/>
+		<key>NSLocalNotificationsUsageDescription</key>
+		<string>Jade necesita enviarte notificaciones para avisarte cuando abres una aplicación restringida y ayudarte a mantener tu enfoque.</string>
+		<key>UIBackgroundModes</key>
+		<array>
+			<string>fetch</string>
+			<string>remote-notification</string>
+		</array>
+		<key>LSApplicationQueriesSchemes</key>
+		<array>
+			<string>instagram</string>
+			<string>fb</string>
+			<string>twitter</string>
+			<string>tiktok</string>
+			<string>youtube</string>
+			<string>whatsapp</string>
+			<string>snapchat</string>
+		</array>
 	</dict>
 </plist>
