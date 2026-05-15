@@ -99,13 +99,13 @@ class _DeepWorkScreenState extends ConsumerState<DeepWorkScreen> with WidgetsBin
                     Icon(
                       Icons.warning_amber_rounded,
                       size: 18,
-                      color: deepWork.interruptions > 0 ? Colors.orange : JadeColors.primary.withValues(alpha: 0.5),
+                      color: deepWork.interruptions.isNotEmpty ? Colors.orange : JadeColors.primary.withValues(alpha: 0.5),
                     ),
                     const SizedBox(width: 8),
                     Text(
-                      'Interrupciones: ${deepWork.interruptions}',
+                      'Interrupciones: ${deepWork.interruptions.length}',
                       style: theme.textTheme.bodyMedium?.copyWith(
-                        color: deepWork.interruptions > 0 ? Colors.orange : theme.colorScheme.onSurface.withValues(alpha: 0.5),
+                        color: deepWork.interruptions.isNotEmpty ? Colors.orange : theme.colorScheme.onSurface.withValues(alpha: 0.5),
                       ),
                     ),
                   ],
@@ -117,8 +117,7 @@ class _DeepWorkScreenState extends ConsumerState<DeepWorkScreen> with WidgetsBin
               JadeButton(
                 text: 'Abandonar Sesión',
                 onPressed: () {
-                  ref.read(deepWorkProvider.notifier).cancelChallenge();
-                  context.pop();
+                  ref.read(deepWorkProvider.notifier).abandonChallenge();
                 },
                 isPrimary: false,
               ),
@@ -131,14 +130,16 @@ class _DeepWorkScreenState extends ConsumerState<DeepWorkScreen> with WidgetsBin
 
   Widget _buildCompletionReport(BuildContext context, DeepWorkState state) {
     final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     
     return Scaffold(
-      body: Center(
-        child: Padding(
+      body: SafeArea(
+        child: SingleChildScrollView(
           padding: const EdgeInsets.all(32.0),
           child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
+              const SizedBox(height: 40),
               const Icon(Icons.check_circle_outline, size: 80, color: JadeColors.primary),
               const SizedBox(height: 24),
               Text(
@@ -149,20 +150,84 @@ class _DeepWorkScreenState extends ConsumerState<DeepWorkScreen> with WidgetsBin
               const SizedBox(height: 16),
               Text(
                 'Has salvado ${state.durationMinutes} unidades de enfoque.',
-                style: theme.textTheme.bodyLarge?.copyWith(color: theme.colorScheme.onSurface.withValues(alpha: 0.6)),
+                style: theme.textTheme.bodyLarge?.copyWith(
+                  color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                ),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 40),
-              _ReportItem(
-                label: 'Calidad de Atención',
-                value: state.interruptions == 0 ? 'Total' : 'Fragmentada',
-                icon: Icons.psychology,
+              
+              Row(
+                children: [
+                  Expanded(
+                    child: _ReportItem(
+                      label: 'Calidad',
+                      value: state.interruptions.isEmpty ? 'Total' : 'Fragmentada',
+                      icon: Icons.psychology,
+                    ),
+                  ),
+                  Expanded(
+                    child: _ReportItem(
+                      label: 'Interrupciones',
+                      value: '${state.interruptions.length}',
+                      icon: Icons.notifications_paused,
+                    ),
+                  ),
+                ],
               ),
-              _ReportItem(
-                label: 'Interrupciones',
-                value: '${state.interruptions}',
-                icon: Icons.notifications_paused,
-              ),
+              
+              if (state.interruptions.isNotEmpty) ...[
+                const SizedBox(height: 40),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    'DETALLE DE DISTRACCIONES',
+                    style: theme.textTheme.labelLarge?.copyWith(
+                      letterSpacing: 2,
+                      color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Container(
+                  decoration: BoxDecoration(
+                    color: isDark ? JadeColors.darkSurfaceContainer : JadeColors.surfaceContainerLow,
+                    borderRadius: BorderRadius.circular(24),
+                  ),
+                  child: ListView.builder(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    itemCount: state.interruptions.length,
+                    itemBuilder: (context, index) {
+                      final interruption = state.interruptions[index];
+                      final minutesInto = interruption.offsetFromStart.inMinutes;
+                      final secondsInto = interruption.offsetFromStart.inSeconds % 60;
+                      
+                      return ListTile(
+                        leading: Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: Colors.orange.withValues(alpha: 0.1),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(Icons.warning_amber_rounded, size: 16, color: Colors.orange),
+                        ),
+                        title: Text(
+                          interruption.appName ?? 'Salida de la app',
+                          style: theme.textTheme.titleSmall,
+                        ),
+                        subtitle: Text(
+                          'A los ${minutesInto}m ${secondsInto}s de la sesión',
+                          style: theme.textTheme.labelMedium?.copyWith(
+                            color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ],
+              
               const SizedBox(height: 60),
               JadeButton(
                 text: 'Volver al Ritual',
@@ -171,6 +236,7 @@ class _DeepWorkScreenState extends ConsumerState<DeepWorkScreen> with WidgetsBin
                   context.pop();
                 },
               ),
+              const SizedBox(height: 40),
             ],
           ),
         ),

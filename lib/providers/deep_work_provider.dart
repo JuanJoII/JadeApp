@@ -4,27 +4,42 @@ import 'focus_provider.dart';
 
 enum DeepWorkStatus { idle, active, completed, failed }
 
+class Interruption {
+  final DateTime timestamp;
+  final String? appName;
+  final Duration offsetFromStart;
+
+  Interruption({
+    required this.timestamp,
+    this.appName,
+    required this.offsetFromStart,
+  });
+}
+
 class DeepWorkState {
   final DeepWorkStatus status;
   final int durationMinutes;
   final int remainingSeconds;
-  final int interruptions;
+  final List<Interruption> interruptions;
   final String? taskTitle;
+  final DateTime? startTime;
 
   DeepWorkState({
     this.status = DeepWorkStatus.idle,
     this.durationMinutes = 0,
     this.remainingSeconds = 0,
-    this.interruptions = 0,
+    this.interruptions = const [],
     this.taskTitle,
+    this.startTime,
   });
 
   DeepWorkState copyWith({
     DeepWorkStatus? status,
     int? durationMinutes,
     int? remainingSeconds,
-    int? interruptions,
+    List<Interruption>? interruptions,
     String? taskTitle,
+    DateTime? startTime,
   }) {
     return DeepWorkState(
       status: status ?? this.status,
@@ -32,6 +47,7 @@ class DeepWorkState {
       remainingSeconds: remainingSeconds ?? this.remainingSeconds,
       interruptions: interruptions ?? this.interruptions,
       taskTitle: taskTitle ?? this.taskTitle,
+      startTime: startTime ?? this.startTime,
     );
   }
 }
@@ -43,11 +59,14 @@ class DeepWorkNotifier extends StateNotifier<DeepWorkState> {
   DeepWorkNotifier(this.ref) : super(DeepWorkState());
 
   void startChallenge(int minutes, String taskTitle) {
+    final now = DateTime.now();
     state = DeepWorkState(
       status: DeepWorkStatus.active,
       durationMinutes: minutes,
       remainingSeconds: minutes * 60,
       taskTitle: taskTitle,
+      startTime: now,
+      interruptions: [],
     );
 
     _timer?.cancel();
@@ -60,9 +79,17 @@ class DeepWorkNotifier extends StateNotifier<DeepWorkState> {
     });
   }
 
-  void recordInterruption() {
-    if (state.status == DeepWorkStatus.active) {
-      state = state.copyWith(interruptions: state.interruptions + 1);
+  void recordInterruption({String? appName}) {
+    if (state.status == DeepWorkStatus.active && state.startTime != null) {
+      final now = DateTime.now();
+      final newInterruption = Interruption(
+        timestamp: now,
+        appName: appName,
+        offsetFromStart: now.difference(state.startTime!),
+      );
+      state = state.copyWith(
+        interruptions: [...state.interruptions, newInterruption],
+      );
     }
   }
 
@@ -75,13 +102,21 @@ class DeepWorkNotifier extends StateNotifier<DeepWorkState> {
     double baseReward = state.durationMinutes.toDouble();
     double multiplier = 1.0;
     
-    if (state.interruptions > 0) {
-      multiplier = (1.0 - (state.interruptions * 0.2)).clamp(0.1, 0.9);
+    if (state.interruptions.isNotEmpty) {
+      multiplier = (1.0 - (state.interruptions.length * 0.2)).clamp(0.1, 0.9);
     }
     
     double finalReward = baseReward * multiplier;
     ref.read(focusProvider.notifier).addFocus(finalReward);
     
+    state = state.copyWith(status: DeepWorkStatus.completed);
+  }
+
+  void abandonChallenge() {
+    _timer?.cancel();
+    // We transition to completed so the user can see the report
+    // but maybe with 0 reward or reduced reward if they didn't finish?
+    // For now, let's just show the report with the current interruptions.
     state = state.copyWith(status: DeepWorkStatus.completed);
   }
 
