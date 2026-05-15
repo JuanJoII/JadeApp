@@ -5,6 +5,7 @@ import 'features/home/home_screen.dart';
 import 'features/monitoring/monitoring_screen.dart';
 import 'features/monitoring/jade_overlay_screen.dart';
 import 'features/routines/routines_screen.dart';
+import 'features/routines/deep_work_screen.dart';
 import 'features/progress/progress_screen.dart';
 import 'features/settings/settings_screen.dart';
 import 'widgets/main_scaffold.dart';
@@ -50,6 +51,11 @@ final router = GoRouter(
       path: '/overlay',
       parentNavigatorKey: _rootNavigatorKey,
       builder: (context, state) => const JadeOverlayScreen(),
+    ),
+    GoRoute(
+      path: '/deep-work',
+      parentNavigatorKey: _rootNavigatorKey,
+      builder: (context, state) => const DeepWorkScreen(),
     ),
   ],
 );

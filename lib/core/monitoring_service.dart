@@ -11,6 +11,8 @@ class MonitoringService {
   static StreamSubscription? _accessibilitySubscription;
   static List<String> _cachedBlockedApps = [];
   static DateTime? _lastNotificationTime;
+  static DateTime? _lastDrainTime;
+  static const double _defaultDrainRate = 0.5; // units per minute
 
   static Future<void> initialize() async {
     // Configuración de Notificaciones
@@ -71,19 +73,24 @@ class MonitoringService {
     try {
       String lastApp = "";
 
-      _accessibilitySubscription = FlutterAccessibilityService.accessStream.listen((event) {
+      _accessibilitySubscription = FlutterAccessibilityService.accessStream.listen((event) async {
         final String currentApp = event.packageName ?? "";
         
         if (currentApp.isEmpty || currentApp == "com.android.systemui") return;
         if (currentApp.contains("jade_app")) return;
 
-        if (currentApp != lastApp && _cachedBlockedApps.contains(currentApp)) {
-          final now = DateTime.now();
-          if (_lastNotificationTime == null || 
-              now.difference(_lastNotificationTime!) > const Duration(seconds: 15)) {
-            
-            _showBlockNotification(currentApp);
-            _lastNotificationTime = now;
+        if (_cachedBlockedApps.contains(currentApp)) {
+          // Drain focus
+          await _drainFocus(currentApp);
+
+          if (currentApp != lastApp) {
+            final now = DateTime.now();
+            if (_lastNotificationTime == null || 
+                now.difference(_lastNotificationTime!) > const Duration(seconds: 15)) {
+              
+              _showBlockNotification(currentApp);
+              _lastNotificationTime = now;
+            }
           }
         }
         lastApp = currentApp;
@@ -92,6 +99,63 @@ class MonitoringService {
       });
     } catch (e) {
       debugPrint("JADE_ERROR: Fallo al iniciar monitoreo: $e");
+    }
+  }
+
+  static Future<void> _drainFocus(String packageName) async {
+    final now = DateTime.now();
+    if (_lastDrainTime != null) {
+      final difference = now.difference(_lastDrainTime!).inSeconds;
+      if (difference > 0) {
+        final prefs = await SharedPreferences.getInstance();
+        double currentFocus = prefs.getDouble('focus_level') ?? 100.0;
+        
+        // Dynamic drain rate logic
+        double rate = _defaultDrainRate;
+        if (packageName.contains('facebook') || 
+            packageName.contains('instagram') || 
+            packageName.contains('tiktok') ||
+            packageName.contains('youtube')) {
+          rate = 1.0; // Social media drains faster
+        }
+
+        double drainAmount = (rate / 60.0) * difference;
+        double newFocus = (currentFocus - drainAmount).clamp(0.0, 100.0);
+        
+        await prefs.setDouble('focus_level', newFocus);
+        await prefs.setString('focus_last_update', now.toIso8601String());
+
+        // Check for Conscious Pause
+        if (currentFocus >= 10.0 && newFocus < 10.0) {
+          _showConsciousPauseNotification();
+        }
+      }
+    }
+    _lastDrainTime = now;
+  }
+
+  static Future<void> _showConsciousPauseNotification() async {
+    const AndroidNotificationDetails androidPlatformChannelSpecifics =
+        AndroidNotificationDetails(
+      'jade_alert_channel',
+      'Alertas de JADE',
+      importance: Importance.max,
+      priority: Priority.high,
+      icon: '@mipmap/ic_launcher',
+    );
+    
+    const NotificationDetails platformChannelSpecifics =
+        NotificationDetails(android: androidPlatformChannelSpecifics);
+
+    try {
+      await _notificationsPlugin.show(
+        999,
+        'Reservorio Crítico',
+        'Tu energía de atención está agotándose. ¿Qué tal un micro-ritual de recarga?',
+        platformChannelSpecifics,
+      );
+    } catch (e) {
+      debugPrint("JADE_ERROR: Fallo al mostrar notificación: $e");
     }
   }
 
@@ -124,6 +188,7 @@ class MonitoringService {
   static void stopMonitoring() {
     _accessibilitySubscription?.cancel();
     _accessibilitySubscription = null;
+    _lastDrainTime = null;
   }
 
   static Future<bool> isAccessibilityGranted() async {
