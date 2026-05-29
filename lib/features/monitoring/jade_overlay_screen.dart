@@ -56,6 +56,130 @@ class _JadeOverlayScreenState extends ConsumerState<JadeOverlayScreen>
     return package;
   }
 
+  void _showReservoirSettings(BuildContext context, WidgetRef ref, double currentMax) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    double tempMinutes = currentMax;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) => Container(
+          decoration: BoxDecoration(
+            color: theme.scaffoldBackgroundColor,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
+          ),
+          padding: EdgeInsets.only(
+            top: 32,
+            left: 32,
+            right: 32,
+            bottom: 32 + MediaQuery.of(context).viewInsets.bottom,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  const Icon(Icons.tune_outlined, color: JadeColors.primary),
+                  const SizedBox(width: 12),
+                  Text(
+                    'Ajustar Reservorio',
+                    style: theme.textTheme.headlineSmall?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'Define cuántos minutos de atención representa tu reservorio al 100%. Las aplicaciones distractoras drenarán este reservorio de forma proporcional.',
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: colorScheme.onSurface.withValues(alpha: 0.6),
+                ),
+              ),
+              const SizedBox(height: 32),
+              Center(
+                child: Column(
+                  children: [
+                    Text(
+                      '${tempMinutes.toInt()} minutos',
+                      style: theme.textTheme.displayMedium?.copyWith(
+                        color: JadeColors.primary,
+                        fontSize: 36,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      tempMinutes >= 60
+                          ? '(${ (tempMinutes / 60).floor() } h ${ (tempMinutes % 60).toInt() > 0 ? '${(tempMinutes % 60).toInt()} min' : '' })'
+                          : '(${tempMinutes.toInt()} minutos)',
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: colorScheme.onSurface.withValues(alpha: 0.4),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 24),
+              Slider(
+                value: tempMinutes,
+                min: 30.0,
+                max: 240.0,
+                divisions: 14, // Pasos de 15 minutos (30, 45, 60, ..., 240)
+                activeColor: JadeColors.primary,
+                inactiveColor: JadeColors.primary.withValues(alpha: 0.15),
+                onChanged: (value) {
+                  setState(() {
+                    tempMinutes = value;
+                  });
+                },
+              ),
+              const SizedBox(height: 32),
+              SizedBox(
+                width: double.infinity,
+                height: 52,
+                child: ElevatedButton(
+                  onPressed: () {
+                    ref.read(focusProvider.notifier).setMaxMinutes(tempMinutes);
+                    Navigator.pop(context);
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: JadeColors.primary,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    elevation: 0,
+                  ),
+                  child: const Text(
+                    'Guardar Ajuste',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+              SizedBox(
+                width: double.infinity,
+                height: 48,
+                child: TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  style: TextButton.styleFrom(
+                    foregroundColor: colorScheme.onSurface.withValues(alpha: 0.5),
+                  ),
+                  child: const Text('Cancelar'),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -76,7 +200,8 @@ class _JadeOverlayScreenState extends ConsumerState<JadeOverlayScreen>
     // Obtener el nivel de enfoque actual
     final focusState = ref.watch(focusProvider);
     final focusLevel = focusState.level;
-    final estimatedMinutes = (focusLevel * 1.2).toInt();
+    final maxMinutes = focusState.maxMinutes;
+    final estimatedMinutes = (focusLevel * (maxMinutes / 100.0)).toInt();
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
@@ -166,12 +291,27 @@ class _JadeOverlayScreenState extends ConsumerState<JadeOverlayScreen>
                         Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(
-                              'Reservorio de Enfoque',
-                              style: theme.textTheme.titleMedium?.copyWith(
-                                fontWeight: FontWeight.w600,
-                                color: colorScheme.onSurface.withValues(alpha: 0.8),
-                              ),
+                            Row(
+                              children: [
+                                Text(
+                                  'Reservorio de Enfoque',
+                                  style: theme.textTheme.titleMedium?.copyWith(
+                                    fontWeight: FontWeight.w600,
+                                    color: colorScheme.onSurface.withValues(alpha: 0.8),
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                IconButton(
+                                  constraints: const BoxConstraints(),
+                                  padding: EdgeInsets.zero,
+                                  icon: Icon(
+                                    Icons.tune_outlined,
+                                    size: 16,
+                                    color: JadeColors.primary.withValues(alpha: 0.6),
+                                  ),
+                                  onPressed: () => _showReservoirSettings(context, ref, maxMinutes),
+                                ),
+                              ],
                             ),
                             const SizedBox(height: 4),
                             Text(

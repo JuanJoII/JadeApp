@@ -135,7 +135,15 @@ class FocusMonitoringService : Service() {
 
             if (blockedApps.contains(currentApp)) {
                 Log.d("JADE_MONITOR", "App '$currentApp' is registered as BLOCKED!")
-                drainFocus(currentApp, prefs)
+                
+                // SOLO drenar si ya estábamos en esta misma aplicación bloqueada en la lectura anterior.
+                // Si acabamos de cambiar a esta app, solo inicializamos la marca de tiempo de drenaje
+                // para evitar drenar por tiempo de inactividad o uso de apps permitidas.
+                if (currentApp == lastApp) {
+                    drainFocus(currentApp, prefs)
+                } else {
+                    Log.d("JADE_MONITOR", "Just entered blocked app '$currentApp'. Initializing drain timestamp without draining.")
+                }
 
                 val bypassedApp = prefs.getString("flutter.bypassed_app", null)
                 val bypassedTime = prefs.getLong("flutter.bypassed_time", 0L)
@@ -250,18 +258,28 @@ class FocusMonitoringService : Service() {
 
     private fun drainFocus(packageName: String, prefs: SharedPreferences) {
         val now = System.currentTimeMillis()
-        val difference = (now - lastDrainTime) / 1000.0 // in seconds
+        var difference = (now - lastDrainTime) / 1000.0 // in seconds
+        if (difference > 5.0) {
+            difference = 5.0 // Cap de seguridad para evitar drenajes bruscos por retrasos
+        }
         if (difference > 0) {
             val currentFocus = getDoublePref(prefs, "flutter.focus_level", 100.0)
+            val maxFocusMinutes = getDoublePref(prefs, "flutter.max_focus_minutes", 120.0)
+            
+            // baseRate es el porcentaje de enfoque (0-100) a drenar por minuto
+            val baseRate = 100.0 / maxFocusMinutes
 
-            var rate = defaultDrainRate
+            var multiplier = 1.0
             if (packageName.contains("facebook") ||
                 packageName.contains("instagram") ||
                 packageName.contains("tiktok") ||
                 packageName.contains("youtube")
             ) {
-                rate = 1.0
+                multiplier = 2.0 // Las aplicaciones de alta dopamina drenan el doble de rápido
             }
+
+            val rate = baseRate * multiplier
+            Log.d("JADE_MONITOR", "draining focus: rate = $rate%/min (multiplier = $multiplier, maxMinutes = $maxFocusMinutes), difference = $difference s")
 
             val drainAmount = (rate / 60.0) * difference
             val newFocus = (currentFocus - drainAmount).coerceIn(0.0, 100.0)
@@ -281,24 +299,42 @@ class FocusMonitoringService : Service() {
     }
 
     private fun getDoublePref(prefs: SharedPreferences, key: String, defaultValue: Double): Double {
+        // 1. Intentar leer como Float (Formato estándar que usa Flutter shared_preferences en Android)
         try {
             if (prefs.contains(key)) {
-                return prefs.getFloat(key, defaultValue.toFloat()).toDouble()
+                val value = prefs.all[key]
+                if (value is Float) {
+                    return value.toDouble()
+                }
             }
         } catch (e: Exception) {}
 
+        // 2. Intentar leer como Long (Compatibilidad con valores guardados como bits)
         try {
-            val str = prefs.getString(key, null)
-            if (str != null) {
-                return str.toDoubleOrNull() ?: defaultValue
+            if (prefs.contains(key)) {
+                val value = prefs.all[key]
+                if (value is Long) {
+                    return java.lang.Double.longBitsToDouble(value)
+                }
             }
         } catch (e: Exception) {}
 
+        // 3. Intentar leer como Double directamente
         try {
             if (prefs.contains(key)) {
-                val longVal = prefs.getLong(key, 0L)
-                if (longVal != 0L) {
-                    return java.lang.Double.longBitsToDouble(longVal)
+                val value = prefs.all[key]
+                if (value is Double) {
+                    return value
+                }
+            }
+        } catch (e: Exception) {}
+
+        // 4. Intentar leer como String (Compatibilidad heredada)
+        try {
+            if (prefs.contains(key)) {
+                val value = prefs.all[key]
+                if (value is String) {
+                    return value.toDoubleOrNull() ?: defaultValue
                 }
             }
         } catch (e: Exception) {}
@@ -308,22 +344,9 @@ class FocusMonitoringService : Service() {
 
     private fun putDoublePref(prefs: SharedPreferences, key: String, value: Double) {
         val editor = prefs.edit()
-        val all = prefs.all
-        if (all.containsKey(key)) {
-            val existing = all[key]
-            if (existing is Float) {
-                editor.putFloat(key, value.toFloat())
-            } else if (existing is String) {
-                editor.putString(key, value.toString())
-            } else if (existing is Long) {
-                editor.putLong(key, java.lang.Double.doubleToRawLongBits(value))
-            } else {
-                editor.putFloat(key, value.toFloat())
-            }
-        } else {
-            editor.putFloat(key, value.toFloat())
-        }
+        editor.putFloat(key, value.toFloat())
         editor.apply()
+        Log.d("JADE_MONITOR", "putDoublePref (FLOAT): key = $key, value = $value")
     }
 
     private fun showBlockNotification(packageName: String) {
