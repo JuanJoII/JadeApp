@@ -46,15 +46,24 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   ];
 
   Future<void> _requestPermissions() async {
+    final bool isUsageGranted = await MonitoringService.isAccessibilityGranted();
+    final bool isOverlayGranted = await MonitoringService.isOverlayGranted();
+
     // 1. Pedir permiso de notificaciones (Android 13+)
     await Permission.notification.request();
 
-    // 2. Pedir permiso de Accesibilidad
-    await MonitoringService.requestAccessibility();
+    // 2. Pedir permisos secuencialmente para evitar colisiones de Intents
+    if (!isUsageGranted) {
+      await MonitoringService.requestAccessibility();
+    } else if (!isOverlayGranted) {
+      await MonitoringService.requestOverlayPermission();
+    }
   }
 
   Future<void> _finishOnboarding() async {
-    final bool isGranted = await MonitoringService.isAccessibilityGranted();
+    final bool isUsageGranted = await MonitoringService.isAccessibilityGranted();
+    final bool isOverlayGranted = await MonitoringService.isOverlayGranted();
+    final bool isGranted = isUsageGranted && isOverlayGranted;
 
     if (isGranted) {
       // Iniciar el monitoreo reactivo
@@ -160,7 +169,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                           ElevatedButton.icon(
                             onPressed: _requestPermissions,
                             icon: const Icon(Icons.settings),
-                            label: const Text('Configurar Accesibilidad'),
+                            label: const Text('Configurar Acceso de Uso'),
                             style: ElevatedButton.styleFrom(
                               backgroundColor: JadeColors.primary.withValues(
                                 alpha: 0.1,

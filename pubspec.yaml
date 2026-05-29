@@ -43,7 +43,6 @@ dependencies:
   shared_preferences: ^2.2.3
   usage_stats: ^1.1.0
   flutter_local_notifications: ^17.2.1
-  flutter_accessibility_service: ^1.0.0
   flutter_svg: ^2.0.10+1
 
 dev_dependencies:

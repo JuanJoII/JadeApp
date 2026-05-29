@@ -1,11 +1,43 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../core/theme.dart';
+import '../core/monitoring_service.dart';
 
-class MainScaffold extends StatelessWidget {
+class MainScaffold extends StatefulWidget {
   final Widget child;
 
   const MainScaffold({super.key, required this.child});
+
+  @override
+  State<MainScaffold> createState() => _MainScaffoldState();
+}
+
+class _MainScaffoldState extends State<MainScaffold> {
+  Timer? _overlayTimer;
+
+  @override
+  void initState() {
+    super.initState();
+    _startOverlayCheck();
+  }
+
+  @override
+  void dispose() {
+    _overlayTimer?.cancel();
+    super.dispose();
+  }
+
+  void _startOverlayCheck() {
+    _overlayTimer = Timer.periodic(const Duration(seconds: 1), (timer) async {
+      final pendingOverlay = await MonitoringService.getPendingOverlay();
+      if (pendingOverlay != null && pendingOverlay.isNotEmpty) {
+        if (mounted) {
+          context.push('/overlay', extra: pendingOverlay);
+        }
+      }
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -25,7 +57,7 @@ class MainScaffold extends StatelessWidget {
     final colorScheme = Theme.of(context).colorScheme;
 
     return Scaffold(
-      body: child,
+      body: widget.child,
       bottomNavigationBar: NavigationBar(
         selectedIndex: currentIndex,
         onDestinationSelected: (index) {

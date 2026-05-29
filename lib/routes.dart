@@ -50,7 +50,10 @@ final router = GoRouter(
     GoRoute(
       path: '/overlay',
       parentNavigatorKey: _rootNavigatorKey,
-      builder: (context, state) => const JadeOverlayScreen(),
+      builder: (context, state) {
+        final packageName = state.extra as String? ?? '';
+        return JadeOverlayScreen(packageName: packageName);
+      },
     ),
     GoRoute(
       path: '/deep-work',

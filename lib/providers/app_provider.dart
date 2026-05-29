@@ -1,3 +1,4 @@
+import 'dart:developer' as developer;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:installed_apps/installed_apps.dart';
 import 'package:installed_apps/app_info.dart' as ia;
@@ -54,7 +55,7 @@ class AppListNotifier extends StateNotifier<List<AppInfo>> {
       
       state.sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
     } catch (e) {
-      print('Error fetching apps: $e');
+      developer.log('Error fetching apps', error: e);
     }
   }
 

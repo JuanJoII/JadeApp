@@ -11,22 +11,37 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
+class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   bool _isAccessibilityGranted = false;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _checkStatus();
   }
 
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _checkStatus();
+    }
+  }
+
   Future<void> _checkStatus() async {
-    final granted = await MonitoringService.isAccessibilityGranted();
+    final usageGranted = await MonitoringService.isAccessibilityGranted();
+    final overlayGranted = await MonitoringService.isOverlayGranted();
+    final granted = usageGranted && overlayGranted;
+
     if (granted) {
-      debugPrint("JADE_DEBUG: Accesibilidad concedida. Iniciando monitoreo...");
+      debugPrint("JADE_DEBUG: Permisos concedidos. Iniciando monitoreo...");
       await MonitoringService.startMonitoring();
-      // En Android 13+, necesitamos pedir notificaciones explícitamente
-      await MonitoringService.requestNotificationPermission();
     }
     if (mounted) {
       setState(() {
@@ -201,13 +216,13 @@ class _HomeScreenState extends State<HomeScreen> {
                 Text(
                   _isAccessibilityGranted
                       ? "Monitor Activo"
-                      : "Permiso de Accesibilidad",
+                      : "Acceso de Uso",
                   style: const TextStyle(fontWeight: FontWeight.bold),
                 ),
                 Text(
                   _isAccessibilityGranted
                       ? "Protegiendo tu santuario..."
-                      : "Necesario para detectar apps.",
+                      : "Necesario para detectar apps distractoras.",
                   style: const TextStyle(fontSize: 12),
                 ),
               ],
@@ -218,8 +233,16 @@ class _HomeScreenState extends State<HomeScreen> {
               width: 100, // Tamaño fijo para evitar el error de layout en Row
               child: ElevatedButton(
                 onPressed: () async {
-                  await MonitoringService.requestAccessibility();
-                  await MonitoringService.requestNotificationPermission();
+                  final usageGranted = await MonitoringService.isAccessibilityGranted();
+                  final overlayGranted = await MonitoringService.isOverlayGranted();
+                  
+                  if (!usageGranted) {
+                    await MonitoringService.requestAccessibility();
+                  } else if (!overlayGranted) {
+                    await MonitoringService.requestOverlayPermission();
+                  } else {
+                    await MonitoringService.requestNotificationPermission();
+                  }
                   _checkStatus();
                 },
                 style: ElevatedButton.styleFrom(
